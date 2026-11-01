@@ -6,7 +6,7 @@
   "scripts": {
     "gen": "node scripts/gen-java-files.mjs",
     "dev": "node scripts/dev.mjs",
-    "build": "node scripts/gen-java-files.mjs && tsc -b && vite build",
+    "build": "node scripts/gen-java-files.mjs . && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
