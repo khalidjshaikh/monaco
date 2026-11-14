@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { javaFiles } from './javaFiles';
 import FileTree, { ancestorsOf } from './FileTree';
+import { registerRazorLanguage } from './razorLanguage';
 
 function languageFor(name: string): string {
   const ext = name.toLowerCase().split('.').pop() || '';
@@ -12,6 +13,7 @@ function languageFor(name: string): string {
     md: 'markdown', yml: 'yaml', yaml: 'yaml', properties: 'properties',
     sh: 'shell', bash: 'shell', py: 'python', rb: 'ruby', go: 'go',
     c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', hpp: 'cpp', cs: 'csharp',
+    razor: 'razor', cshtml: 'razor',
     sql: 'sql', txt: 'plaintext', gradle: 'groovy', groovy: 'groovy',
     pom: 'xml',
   };
@@ -314,6 +316,7 @@ export default function App() {
             height="100%"
             language={languageFor(file.name)}
             theme="vs-dark"
+            beforeMount={registerRazorLanguage}
             onMount={(editor) => {
               editorRef.current = editor;
               try {

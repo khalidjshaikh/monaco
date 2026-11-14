@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const HELP = `Usage: node scripts/gen-java-files.mjs [path|--path=<path>|--src=<path>|--dir=<path>]
 
-Generates src/javaFiles.ts from every file in a directory (recursively), skipping only .git.
+Generates src/javaFiles.ts from every text file in a directory (recursively).
+Skips build output dirs (bin, obj, node_modules, dist, ...), binary/editor noise
+(images, archives, compiled artifacts, lock files) and files over 2 MB.
 
 Options:
   <path>            Source directory
@@ -42,9 +45,46 @@ function resolveSrcPath(argv) {
 const resolved = resolveSrcPath(process.argv);
 const SRC_DIR =
   resolved || process.cwd();
-const OUT_FILE = '/Users/kshaikh/git/typescript/monaco/src/javaFiles.ts';
+const OUT_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'javaFiles.ts');
 
-const SKIP_DIRS = new Set(['.git', 'target', 'out', '.target', '.out', 'node_modules', 'dist', 'build']);
+const SKIP_DIRS = new Set([
+  '.git',
+  '.angular',
+  '.vscode',
+  '.vs',
+  '.idea',
+  'target',
+  'out',
+  '.target',
+  '.out',
+  'node_modules',
+  'dist',
+  'build',
+  'bin',
+  'obj',
+  'artifacts',
+  'TestResults',
+]);
+const SKIP_FILES = new Set([
+  '.DS_Store',
+  'angular.json',
+  'favicon.ico',
+  'favicon.svg',
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+]);
+const SKIP_EXTS = new Set([
+  // images / docs
+  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.bmp', '.webp', '.pdf',
+  // archives
+  '.zip', '.gz', '.tar', '.7z', '.br',
+  // compiled artifacts
+  '.dll', '.exe', '.pdb', '.so', '.dylib', '.a', '.o', '.class', '.jar', '.wasm',
+  // generated / local data
+  '.map', '.cache', '.db', '.db-wal', '.db-shm', '.sqlite', '.bin',
+]);
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 function walkJava(dir, base) {
   const result = [];
@@ -61,7 +101,13 @@ function walkJava(dir, base) {
       result.push(...walkJava(full, base));
     } else if (e.isFile()) {
       const lower = e.name.toLowerCase();
-      if (e.name === '.DS_Store' || lower.endsWith('.png')) continue;
+      if (SKIP_FILES.has(e.name)) continue;
+      if (SKIP_EXTS.has(path.extname(lower))) continue;
+      try {
+        if (fs.statSync(full).size > MAX_FILE_BYTES) continue;
+      } catch {
+        continue;
+      }
       const rel = path.relative(base, full).split(path.sep).join('/');
       result.push({ rel, full });
     }
